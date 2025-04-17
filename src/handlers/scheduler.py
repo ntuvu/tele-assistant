@@ -1,8 +1,14 @@
+import logging
+from datetime import datetime
+
+import requests
+from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
-from datetime import datetime
-from aiogram import Bot
-from src.handlers.storage import load_scheduled_messages, add_scheduled_message, remove_scheduled_message
+from apscheduler.triggers.interval import IntervalTrigger
+
+from src.config import API_HEALTHCHECK
+from src.handlers.storage import load_scheduled_messages, add_scheduled_message
 
 # Initialize the scheduler
 scheduler = AsyncIOScheduler()
@@ -58,8 +64,43 @@ async def restore_scheduled_messages(bot: Bot) -> None:
             )
 
 
+def ping_koyeb_api():
+    """
+    Function to call the Koyeb API endpoint every 15 minutes
+    """
+    try:
+        # The API endpoint to call
+        api_url = API_HEALTHCHECK
+
+        # Make the GET request
+        response = requests.get(api_url)
+
+        # Log the response
+        if response.status_code == 200:
+            logging.info("Successfully pinged Koyeb API")
+        else:
+            logging.error("Failed to ping Koyeb API")
+
+    except Exception as e:
+        logging.error(f"Error pinging Koyeb API: {str(e)}")
+
+
+def schedule_koyeb_ping():
+    """
+    Schedule the Koyeb API ping to run every 15 minutes
+    """
+    scheduler.add_job(
+        ping_koyeb_api,
+        trigger=IntervalTrigger(minutes=15),
+        id="koyeb_ping_job",
+        replace_existing=True
+    )
+    logging.info("Scheduled Koyeb API ping every 15 minutes")
+
+
 def start_scheduler() -> None:
-    """
-    Start the scheduler
-    """
+    # Schedule the Koyeb API ping
+    schedule_koyeb_ping()
+
+    # Start the scheduler
     scheduler.start()
