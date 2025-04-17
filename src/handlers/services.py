@@ -1,7 +1,10 @@
 import logging
 
+import requests
 from aiogram.types import Message
+from requests import Response
 
+from src.config import API_HEALTHCHECK
 # Assuming scheduler functions are in src.handlers.scheduler
 # Adjust the import path if your structure is different
 from src.handlers.scheduler import parse_datetime, schedule_message
@@ -13,7 +16,14 @@ async def get_hello_message() -> str:
     """
     Get the hello message
     """
-    return "Hello!"
+    api_url = API_HEALTHCHECK
+
+    # Make the GET request
+    healthcheck_res = requests.get(api_url)
+    if healthcheck_res.status_code != 200:
+        return "Hello, I'm alive!"
+
+    return "I'm dead"
 
 
 async def get_chat_info(chat_id: int, user_id: int) -> str:

@@ -1,12 +1,11 @@
 import logging
+
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from src.handlers.decorators import admin_only # Assuming you have this filter
-# Adjust import paths based on your project structure
-from src.handlers.services import get_hello_message, get_chat_info, handle_schedule_command
-from src.handlers.scheduler import parse_datetime, schedule_message # Keep parse_datetime if still needed elsewhere, otherwise remove
 
+from src.handlers.decorators import admin_only
+from src.handlers.services import get_hello_message, get_chat_info, handle_schedule_command
 
 logger = logging.getLogger(__name__)
 router = Router()
