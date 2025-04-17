@@ -1,13 +1,15 @@
+import logging
 from aiogram import Router
-from aiogram.types import Message
 from aiogram.filters import Command
-from src.handlers.services import get_hello_message, get_chat_info
-from src.handlers.decorators import admin_only
-from src.handlers.scheduler import parse_datetime, schedule_message
-from datetime import datetime
+from aiogram.types import Message
+from src.handlers.decorators import admin_only # Assuming you have this filter
+# Adjust import paths based on your project structure
+from src.handlers.services import get_hello_message, get_chat_info, handle_schedule_command
+from src.handlers.scheduler import parse_datetime, schedule_message # Keep parse_datetime if still needed elsewhere, otherwise remove
 
-# Create a router for commands
-router: Router = Router()
+
+logger = logging.getLogger(__name__)
+router = Router()
 
 
 @router.message(Command("hello"))
@@ -16,8 +18,12 @@ async def hello_command(message: Message) -> None:
     """
     Handle the /hello command
     """
-    response: str = await get_hello_message()
-    await message.answer(response)
+    try:
+        response: str = await get_hello_message()
+        await message.answer(response)
+    except Exception as e:
+        logger.error(f"Error handling /hello command: {e}", exc_info=True)
+        await message.answer("Sorry, something went wrong while processing the hello command.")
 
 
 @router.message(Command("info"))
@@ -25,40 +31,31 @@ async def info_command(message: Message) -> None:
     """
     Handle the /info command - returns chat ID and user ID
     """
-    chat_id: int = message.chat.id
-    user_id: int = message.from_user.id
-    response: str = await get_chat_info(chat_id, user_id)
-    await message.answer(response)
+    try:
+        chat_id: int = message.chat.id
+        user_id: int = message.from_user.id
+        response: str = await get_chat_info(chat_id, user_id)
+        await message.answer(response)
+    except Exception as e:
+        logger.error(f"Error handling /info command for chat {message.chat.id}: {e}", exc_info=True)
+        await message.answer("Sorry, something went wrong while processing the info command.")
 
 
 @router.message(Command("schedule"))
 @admin_only
-async def schedule_command(message: Message) -> None:
+async def schedule_command_handler(message: Message) -> None:
     """
-    Handle the /schedule command
+    Handle the /schedule command by calling the service function.
     Format: /schedule dd/MM/yyyy HH:mm message
     """
     try:
-        # Split the message text into parts
-        parts = message.text.split(maxsplit=3)
-        if len(parts) < 4:
-            await message.answer(
-                "Please provide date, time, and message in the format:\n/schedule dd/MM/yyyy HH:mm message"
-            )
-            return
-
-        date_str = parts[1]
-        time_str = parts[2]
-        content = parts[3]
-
-        # Parse the datetime
-        scheduled_time = parse_datetime(date_str, time_str)
-
-        # Schedule the message
-        await schedule_message(message.bot, message.chat.id, scheduled_time, "Blablabla")
-
-        await message.answer(f"Message scheduled for {scheduled_time.strftime('%d/%m/%Y %H:%M')}")
-    except ValueError as e:
-        await message.answer(str(e))
+        # Call the service function to handle the logic
+        response_message = await handle_schedule_command(message)
+        # Send the response returned by the service function
+        await message.answer(response_message)
     except Exception as e:
-        await message.answer(f"An error occurred: {str(e)}")
+        # Catch any unexpected errors not handled by the service layer
+        logger.error(f"Critical error in schedule_command_handler for chat {message.chat.id}: {e}", exc_info=True)
+        await message.answer("A critical error occurred while trying to schedule the message.")
+
+# Ensure you have necessary imports like Bot if needed by other functions in this file
