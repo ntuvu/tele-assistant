@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
+from typing import Any
 
-import requests
+import aiohttp
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
@@ -31,16 +32,15 @@ async def schedule_message(bot: Bot, chat_id: int, scheduled_time: datetime, mes
     Schedule a message to be sent at a specific time
     """
     job_id = f"msg_{chat_id}_{scheduled_time.timestamp()}"
-
-    # Add job to scheduler
+    if scheduler.get_job(job_id):
+        logging.warning(f"Job with id {job_id} already exists. Skipping scheduling.")
+        return
     scheduler.add_job(
         bot.send_message,
         trigger=DateTrigger(run_date=scheduled_time),
         args=[chat_id, message],
         id=job_id,
     )
-
-    # Store the scheduled message
     add_scheduled_message(chat_id, scheduled_time, message, job_id)
 
 
@@ -56,6 +56,9 @@ async def restore_scheduled_messages(bot: Bot) -> None:
         # Only restore messages that are in the future
         if scheduled_time > current_time:
             job_id = msg["job_id"]
+            if scheduler.get_job(job_id):
+                logging.info(f"Job with id {job_id} already exists. Skipping restore.")
+                continue
             scheduler.add_job(
                 bot.send_message,
                 trigger=DateTrigger(run_date=scheduled_time),
@@ -64,43 +67,36 @@ async def restore_scheduled_messages(bot: Bot) -> None:
             )
 
 
-def ping_koyeb_api():
+async def ping_koyeb_api() -> None:
     """
-    Function to call the Koyeb API endpoint every 15 minutes
+    Asynchronously call the Koyeb API endpoint every 15 minutes
     """
     try:
-        # The API endpoint to call
         api_url = API_HEALTHCHECK
-
-        # Make the GET request
-        response = requests.get(api_url)
-
-        # Log the response
-        if response.status_code == 200:
-            logging.info("Successfully pinged Koyeb API")
-        else:
-            logging.error("Failed to ping Koyeb API")
-
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url) as response:
+                if response.status == 200:
+                    logging.info("Successfully pinged Koyeb API")
+                else:
+                    logging.error(f"Failed to ping Koyeb API: Status {response.status}")
     except Exception as e:
         logging.error(f"Error pinging Koyeb API: {str(e)}")
 
 
-def schedule_koyeb_ping():
+def schedule_koyeb_ping() -> None:
     """
     Schedule the Koyeb API ping to run every 15 minutes
     """
-    scheduler.add_job(
-        ping_koyeb_api,
-        trigger=IntervalTrigger(minutes=15),
-        id="koyeb_ping_job",
-        replace_existing=True
-    )
+    if scheduler.get_job("koyeb_ping_job"):
+        logging.info("Koyeb ping job already scheduled. Skipping.")
+        return
+    scheduler.add_job(ping_koyeb_api, trigger=IntervalTrigger(minutes=15), id="koyeb_ping_job", replace_existing=True)
     logging.info("Scheduled Koyeb API ping every 15 minutes")
 
 
 def start_scheduler() -> None:
-    # Schedule the Koyeb API ping
+    """
+    Start the scheduler and schedule recurring jobs
+    """
     schedule_koyeb_ping()
-
-    # Start the scheduler
     scheduler.start()

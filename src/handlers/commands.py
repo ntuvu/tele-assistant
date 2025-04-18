@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from src.handlers.decorators import admin_only
-from src.handlers.services import get_hello_message, get_chat_info, handle_schedule_command
+from src.handlers.services import get_chat_info, handle_schedule_command
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -18,7 +18,7 @@ async def hello_command(message: Message) -> None:
     Handle the /hello command
     """
     try:
-        response: str = await get_hello_message()
+        response: str = "Hello, I'm good"
         await message.answer(response)
     except Exception as e:
         logger.error(f"Error handling /hello command: {e}", exc_info=True)

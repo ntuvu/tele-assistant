@@ -14,8 +14,3 @@ ADMIN_ID = os.getenv("ADMIN_ID")
 
 if not ADMIN_ID:
     raise ValueError("Éo thấy ADMIN_ID")
-
-API_HEALTHCHECK = os.getenv("API_HEALTHCHECK")
-
-if not API_HEALTHCHECK:
-    raise ValueError("Éo thấy API_HEALTHCHECK")
