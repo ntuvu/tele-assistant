@@ -1,5 +1,7 @@
 from functools import wraps
+
 from aiogram.types import Message
+
 from src.config import ADMIN_ID
 
 
