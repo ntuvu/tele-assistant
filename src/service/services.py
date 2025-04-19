@@ -1,10 +1,13 @@
 import logging
 
+import aiohttp
 from aiogram.types import Message
 
+from src.config.config import WEATHER_API_KEY
 # Assuming scheduler functions are in src.handlers.scheduler
 # Adjust the import path if your structure is different
-from src.handlers.scheduler import parse_datetime, schedule_message
+from src.schedule.scheduler import parse_datetime, schedule_message
+from src.util.utils import format_weather
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +55,29 @@ async def handle_schedule_command(message: Message) -> str:
         logger.error(f"Unexpected error during scheduling for chat {message.chat.id}: {e}", exc_info=True)
         # Return a generic error message for other exceptions
         return f"An unexpected error occurred: {str(e)}"
+
+
+async def fetch_weather_by_city(city):
+    url = (
+        f"https://api.weatherapi.com/v1/current.json"
+        f"?key={WEATHER_API_KEY}&q={city}&aqi=no&lang=vi"
+    )
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=5) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return format_weather(data)
+    return "Xin lỗi, tôi không thể tìm thấy thời tiết cho thành phố đó."
+
+
+async def fetch_weather_by_coords(latitude, longitude):
+    url = (
+        f"https://api.weatherapi.com/v1/current.json"
+        f"?key={WEATHER_API_KEY}&q={latitude},{longitude}&aqi=no&lang=vi"
+    )
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=5) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return format_weather(data)
+    return "Xin lỗi, tôi không thể lấy được thông tin thời tiết từ vị trí của bạn."

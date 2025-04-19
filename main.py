@@ -3,11 +3,11 @@ import logging
 import threading
 
 from aiogram import Bot, Dispatcher
-from flask import Flask, jsonify
 
-from src.config import BOT_TOKEN, ADMIN_ID
-from src.handlers.commands import router
-from src.handlers.scheduler import start_scheduler, restore_scheduled_messages
+from src.api.health_check_api import run_flask
+from src.bot.commands import router
+from src.config.config import BOT_TOKEN, ADMIN_ID
+from src.schedule.scheduler import start_scheduler, restore_scheduled_messages
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,29 +18,6 @@ dp = Dispatcher()
 
 # Include routers
 dp.include_router(router)
-
-# Initialize Flask app
-app = Flask(__name__)
-
-
-@app.route('/', methods=['GET'])
-def health_check():
-    return jsonify({"status": "ok", "message": "Bot is running"})
-
-
-@app.route('/status', methods=['GET'])
-def status():
-    return jsonify({
-        "bot": "active",
-        "version": "1.0.0"
-    })
-
-
-def run_flask():
-    """
-    Run Flask application in a separate thread
-    """
-    app.run(host='0.0.0.0', port=8000)
 
 
 async def on_startup():

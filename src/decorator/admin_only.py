@@ -2,7 +2,7 @@ from functools import wraps
 
 from aiogram.types import Message
 
-from src.config import ADMIN_ID
+from src.config.config import ADMIN_ID
 
 
 def admin_only(func):
